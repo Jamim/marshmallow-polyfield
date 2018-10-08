@@ -7,12 +7,14 @@ except ImportError:
 from marshmallow_polyfield.polyfield import PolyField
 import pytest
 from tests.shapes import (
+    Shape,
     Rectangle,
     Triangle,
     shape_schema_serialization_disambiguation,
     shape_property_schema_serialization_disambiguation,
     shape_schema_deserialization_disambiguation,
-    shape_property_schema_deserialization_disambiguation
+    shape_property_schema_deserialization_disambiguation,
+    fuzzy_schema_deserialization_disambiguation,
 )
 
 
@@ -62,6 +64,12 @@ class TestPolyField(object):
                 data.get('main'),
                 data.get('others')
             )
+
+    class FuzzySchema(Schema):
+        data = PolyField(
+            deserialization_schema_selector=fuzzy_schema_deserialization_disambiguation,
+            many=True
+        )
 
     def test_deserialize_polyfield(self):
         original = self.ContrivedShapeClass(
@@ -155,6 +163,20 @@ class TestPolyField(object):
                 {'main': {'color': 'blue', 'length': 'four', 'width': 4},
                  'others': None}
             )
+
+    def test_fuzzy_schema(self):
+        color = 'cyan'
+        email = 'dummy@example.com'
+        expected_data = {'data': [Shape(color), email]}
+
+        load_result = self.FuzzySchema().load({'data': [{'color': color}, email]})
+
+        if MARSHMALLOW_3:
+            data = load_result
+        else:
+            data, errors = load_result
+
+        assert data == expected_data
 
 
 class TestPolyFieldDisambiguationByProperty(object):

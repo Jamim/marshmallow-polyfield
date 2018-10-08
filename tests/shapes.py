@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from marshmallow import Schema, fields, post_load
+import six
 
 
 class Shape(object):
@@ -12,6 +13,10 @@ class Shape(object):
 
 class ShapeSchema(Schema):
     color = fields.Str(allow_none=True)
+
+    @post_load
+    def make_object(self, data):
+        return Shape(**data)
 
 
 class Triangle(Shape):
@@ -109,3 +114,13 @@ def shape_property_schema_deserialization_disambiguation(object_dict, data):
     raise TypeError("Could not detect type. "
                     "Did not have a base or a length. "
                     "Are you sure this is a shape?")
+
+
+def fuzzy_schema_deserialization_disambiguation(data, _):
+    if isinstance(data, dict):
+        return ShapeSchema
+    if isinstance(data, six.string_types):
+        return fields.Email
+
+    raise TypeError('Could not detect type. '
+                    'Are you sure this is a shape or an email?')
